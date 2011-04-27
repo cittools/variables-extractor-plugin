@@ -1,4 +1,4 @@
-package com.thalesgroup.jenkins.plugins.varextractor;
+package com.thalesgroup.jenkins.plugins.variablesextractor;
 
 import java.util.Map;
 
@@ -6,17 +6,17 @@ import hudson.EnvVars;
 import hudson.model.EnvironmentContributingAction;
 import hudson.model.AbstractBuild;
 
-public class VarExtractorEnvAction implements EnvironmentContributingAction {
+public class EnvAction implements EnvironmentContributingAction {
 
     private Map<String, String> vars;
     
-    public VarExtractorEnvAction(Map<String, String> vars) {
+    public EnvAction(Map<String, String> vars) {
         super();
         this.vars = vars;
     }
 
     public String getIconFileName() {
-        return "document-properties.gif";
+        return "/plugin/variables-extractor-plugin/icons/exctractor.png";
     }
 
     public String getDisplayName() {

@@ -22,114 +22,117 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN        *
  * THE SOFTWARE.                                                                    *
  ************************************************************************************/
-package com.thalesgroup.jenkins.plugins.varextractor;
+package com.thalesgroup.jenkins.plugins.variablesextractor;
 
 import hudson.Extension;
 import hudson.Launcher;
 import hudson.model.BuildListener;
-import hudson.model.Result;
+import hudson.model.Descriptor.FormException;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
+import hudson.model.Hudson;
 import hudson.tasks.BuildWrapper;
 import hudson.tasks.BuildWrapperDescriptor;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import net.sf.json.JSONArray;
+import net.sf.json.JSONException;
+import net.sf.json.JSONObject;
+
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.StaplerRequest;
 
-public class VarExtractorPlugin extends BuildWrapper {
+public class Plugin extends BuildWrapper {
 
-	private String file;
-	private String pattern;
+    private final List<ExtractorDefinition> extractors;
 
-	@Extension
+    @Extension
     public static final DescriptorImpl DESCRIPTOR = new DescriptorImpl();
-	
-	@DataBoundConstructor
-	public VarExtractorPlugin(String file, String pattern) {
-        super();
-        this.file = file;
-        this.pattern = pattern;
+
+    @DataBoundConstructor
+    public Plugin(List<ExtractorDefinition> extractors) {
+        this.extractors = extractors;
     }
-	
+
+    public Plugin(ExtractorDefinition... extractors) {
+        this.extractors = Arrays.asList(extractors);
+    }
+
     public DescriptorImpl getDescriptor() {
         return DESCRIPTOR;
     }
 
-    public String getPattern() {
-        return pattern;
+    @Override
+    public Environment setUp(@SuppressWarnings("rawtypes") AbstractBuild build, Launcher launcher,
+            BuildListener listener) throws IOException, InterruptedException
+    {
+        Logger logger = new Logger(listener.getLogger());
+
+        Map<String, String> vars = null;
+        EnvAction action = new EnvAction(vars);
+        build.addAction(action);
+        logger.log("Extracted variables:");
+        for (Entry<String, String> entry : vars.entrySet()) {
+            logger.log(entry.getKey() + " = " + entry.getValue());
+        }
+        return new Environment() {
+        };
     }
 
-    public String getFile() {
-        return file;
-    }
-    
-    
-	@Override
-    public Environment setUp(@SuppressWarnings("rawtypes") AbstractBuild build, 
-            Launcher launcher, BuildListener listener)
-            throws IOException, InterruptedException
-    {
-	    try {
-	        VarExtractorLogger logger = new VarExtractorLogger(listener.getLogger());
-	        
-	        RegExpExtractor ext = new RegExpExtractor(file, pattern, build.getWorkspace().getRemote());
-	        Map<String, String> vars = ext.extractVariables();
-	        VarExtractorEnvAction action = new VarExtractorEnvAction(vars);
-	        build.addAction(action);
-	        logger.log("Extracted variables:");
-	        for (Entry<String, String> entry : vars.entrySet()) {
-	            logger.log(entry.getKey() + " = " + entry.getValue());
-	        }
-	    } catch (IOException e) {
-	        e.printStackTrace(listener.getLogger());
-	        build.setResult(Result.FAILURE);
-	    }
-        return new Environment(){};
+    public List<ExtractorDefinition> getExtractors() {
+        return extractors;
     }
 
     public static class DescriptorImpl extends BuildWrapperDescriptor {
 
-	    public static final String DEFAULT_PATTERN = "(?P<NAME>\\w+)-(?P<VERSION>.+)\\.(?P<TIMESTAMP>.+)\\.(?P<FILEEXT>\\w+)";
-	    
         public DescriptorImpl() {
-            super(VarExtractorPlugin.class);
+            super(Plugin.class);
             load();
         }
-	    
-	    @Override
-	    public String getDisplayName() {
-	        return "Variables Extractor";
-	    }
 
-//        @Override
-//        public JobProperty<?> newInstance(StaplerRequest req, JSONObject formData)
-//                throws FormException
-//        {
-//            VarExtractorPlugin instance = null;
-//            try {
-//                JSONObject varextractor = formData.getJSONObject("varextractor");
-//                String file = Util.fixEmptyAndTrim(varextractor.getString("file"));
-//                String pattern = Util.fixEmptyAndTrim(varextractor.getString("pattern"));
-//                if (file != null && pattern != null)
-//                    instance = new VarExtractorPlugin(file, pattern);
-//            } catch (JSONException e) {
-//                throw new FormException(e, "Invalid JSON data");
-//            }
-//            return instance;
-//        }
-	    
-	    public String getDefaultPattern() {
-	        return DEFAULT_PATTERN;
-	    }
+        @Override
+        public String getDisplayName() {
+            return "Variables Extractor";
+        }
+
+        @Override
+        public BuildWrapper newInstance(StaplerRequest req, JSONObject formData)
+                throws FormException
+        {
+            List<ExtractorDefinition> extractors = new ArrayList<ExtractorDefinition>();
+            
+            try {
+                JSONObject jsonObj = formData.getJSONObject("extractorDefinitions");
+                ExtractorDefinition def = (ExtractorDefinition) jsonObj.toBean();
+                extractors.add(def);
+            } catch(JSONException e) {
+                JSONArray array = formData.getJSONArray("extractorDefinitions");
+                while (array.listIterator().hasNext()) {
+                    Object o = array.listIterator().next();
+                    JSONObject jsonObj = (JSONObject) o;
+                    ExtractorDefinition def = (ExtractorDefinition) jsonObj.toBean();
+                    extractors.add(def);
+                }
+            }
+            
+            return new Plugin(extractors);
+        }
+
+        public List<ExtractorDescriptor> getExtractorDescriptors() {
+            return Hudson.getInstance().getDescriptorList(ExtractorDefinition.class);
+        }
 
         @Override
         public boolean isApplicable(AbstractProject<?, ?> item) {
             return true;
         }
-	    
-	}
+
+    }
 
 }

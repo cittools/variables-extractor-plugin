@@ -34,7 +34,7 @@ THE SOFTWARE.
         <version>1.355</version>
     </parent>
 
-    <artifactId>varextractor</artifactId>
+    <artifactId>variables-extractor-plugin</artifactId>
     <packaging>hpi</packaging>
     <version>1.0-SNAPSHOT</version>
     <name>Hudson Variables Extractor Plug-in</name>
@@ -64,6 +64,20 @@ THE SOFTWARE.
         <maven.compiler.source>1.6</maven.compiler.source>
         <maven.compiler.target>1.6</maven.compiler.target>
     </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.thalesgroup</groupId>
+            <artifactId>variables-extractor</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.8.1</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
 
 	<build>
         <pluginManagement>
