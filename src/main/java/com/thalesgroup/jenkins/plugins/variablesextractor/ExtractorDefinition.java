@@ -1,5 +1,6 @@
 package com.thalesgroup.jenkins.plugins.variablesextractor;
 
+import hudson.EnvVars;
 import hudson.model.Describable;
 
 import com.thalesgroup.variablesextractor.VariableExtractor;
@@ -7,7 +8,7 @@ import com.thalesgroup.variablesextractor.VariableExtractor;
 public abstract class ExtractorDefinition implements Describable<ExtractorDefinition> {
 
     
-    public abstract VariableExtractor createExtractor();
+    public abstract VariableExtractor createExtractor(EnvVars environment);
     
     
 }

@@ -1,5 +1,6 @@
 package com.thalesgroup.jenkins.plugins.variablesextractor;
 
+import hudson.EnvVars;
 import hudson.Extension;
 import hudson.model.Descriptor;
 
@@ -15,11 +16,19 @@ public class PropertiesFileExtractorDefinition extends ExtractorDefinition {
     private final String propertiesFile;
     private final String restrictedNames;
 
-    @DataBoundConstructor  
+    @DataBoundConstructor
     public PropertiesFileExtractorDefinition(String propertiesFile, String restrictedNames) {
         super();
         this.propertiesFile = propertiesFile;
         this.restrictedNames = restrictedNames;
+    }
+
+    public String getPropertiesFile() {
+        return propertiesFile;
+    }
+
+    public String getRestrictedNames() {
+        return restrictedNames;
     }
 
     public Descriptor<ExtractorDefinition> getDescriptor() {
@@ -27,9 +36,10 @@ public class PropertiesFileExtractorDefinition extends ExtractorDefinition {
     }
 
     @Override
-    public VariableExtractor createExtractor() {
+    public VariableExtractor createExtractor(EnvVars environment) {
         String[] names = restrictedNames.split("\\s*,\\s*");
-        return new PropertiesFileExtractor(propertiesFile, Arrays.asList(names)); 
+        String propertiesFile = environment.expand(this.propertiesFile);
+        return new PropertiesFileExtractor(propertiesFile, Arrays.asList(names));
     }
 
     @Extension

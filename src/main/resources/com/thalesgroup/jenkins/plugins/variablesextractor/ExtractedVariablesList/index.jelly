@@ -24,27 +24,25 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 -->
+
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define"
     xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form"
     xmlns:i="jelly:fmt" xmlns:p="/lib/hudson/project">
-	<f:entry title="${%File Path}" field="file" >
-	    <f:textbox />
-	</f:entry>
-    <f:entry title="${%Pattern}" field="pattern" >
-        <f:textbox default="${descriptor.defaultPattern}"/>
-    </f:entry>
-    <f:advanced>
-	    <f:entry title="${%Ignore Case}" field="ignoreCase" >
-	        <f:checkbox default="${descriptor.defaultIgnoreCase}"/>
-	    </f:entry>
-	           <f:entry title="${%Comments}" field="comments" >
-            <f:checkbox default="${descriptor.defaultComments}"/>
-        </f:entry>
-        <f:entry title="${%Multi-Line}" field="multiline" >
-            <f:checkbox default="${descriptor.defaultMultiline}"/>
-        </f:entry>
-        <f:entry title="${%Dot All}" field="dotall" >
-            <f:checkbox default="${descriptor.defaultDotall}"/>
-        </f:entry>
-    </f:advanced>
+    <l:layout title="${it.displayName}">
+        <j:invokeStatic var="buildClass" className="java.lang.Class" method="forName">
+            <j:arg value="hudson.model.AbstractBuild" />
+        </j:invokeStatic>
+        <j:set var="build" value="${request.findAncestorObject(buildClass)}" />
+        <st:include page="sidepanel.jelly" it="${build}" />
+        <l:main-panel>
+            <h1>Build #${build.number}: ${%Extracted Variables}</h1>
+            <l:pane width="3" title="${%Extracted Variables}">
+                <j:forEach var="var" items="${it.variables}" varStatus="loop">
+                    <f:entry title="${var.key}">
+                        <f:textbox name="value" value="${var.value}" readonly="true" />
+                    </f:entry>
+                </j:forEach>
+            </l:pane>
+        </l:main-panel>
+    </l:layout>
 </j:jelly>

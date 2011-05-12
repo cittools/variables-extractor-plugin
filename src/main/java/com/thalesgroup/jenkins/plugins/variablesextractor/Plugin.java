@@ -27,7 +27,6 @@ package com.thalesgroup.jenkins.plugins.variablesextractor;
 import hudson.Extension;
 import hudson.Launcher;
 import hudson.model.BuildListener;
-import hudson.model.Descriptor.FormException;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.Hudson;
@@ -37,6 +36,7 @@ import hudson.tasks.BuildWrapperDescriptor;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -73,8 +73,13 @@ public class Plugin extends BuildWrapper {
             BuildListener listener) throws IOException, InterruptedException
     {
         Logger logger = new Logger(listener.getLogger());
+        Map<String, String> vars = new HashMap<String, String>();
 
-        Map<String, String> vars = null;
+        for (ExtractorDefinition extractor : this.extractors) {
+            vars.putAll(extractor.createExtractor(build.getEnvironment(listener))
+                    .extractVariables());
+        }
+
         EnvAction action = new EnvAction(vars);
         build.addAction(action);
         logger.log("Extracted variables:");
@@ -106,21 +111,14 @@ public class Plugin extends BuildWrapper {
                 throws FormException
         {
             List<ExtractorDefinition> extractors = new ArrayList<ExtractorDefinition>();
-            
             try {
                 JSONObject jsonObj = formData.getJSONObject("extractorDefinitions");
-                ExtractorDefinition def = (ExtractorDefinition) jsonObj.toBean();
+                ExtractorDefinition def = req.bindJSON(ExtractorDefinition.class, jsonObj);
                 extractors.add(def);
-            } catch(JSONException e) {
+            } catch (JSONException e) {
                 JSONArray array = formData.getJSONArray("extractorDefinitions");
-                while (array.listIterator().hasNext()) {
-                    Object o = array.listIterator().next();
-                    JSONObject jsonObj = (JSONObject) o;
-                    ExtractorDefinition def = (ExtractorDefinition) jsonObj.toBean();
-                    extractors.add(def);
-                }
+                extractors.addAll(req.bindJSONToList(ExtractorDefinition.class, array));
             }
-            
             return new Plugin(extractors);
         }
 
