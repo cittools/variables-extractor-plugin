@@ -1,5 +1,6 @@
 package com.thalesgroup.jenkins.plugins.variablesextractor;
 
+import hudson.EnvVars;
 import hudson.Extension;
 import hudson.model.Descriptor;
 
@@ -20,8 +21,8 @@ public class FileContentRegExpExtractorDefinition extends ExtractorDefinition {
     private final boolean dotall;
 
     @DataBoundConstructor
-    public FileContentRegExpExtractorDefinition(String file, String pattern,
-            boolean ignoreCase, boolean comments, boolean multiline, boolean dotall)
+    public FileContentRegExpExtractorDefinition(String file, String pattern, boolean ignoreCase,
+            boolean comments, boolean multiline, boolean dotall)
     {
         super();
         this.file = file;
@@ -32,14 +33,12 @@ public class FileContentRegExpExtractorDefinition extends ExtractorDefinition {
         this.dotall = dotall;
     }
 
-
-
     public Descriptor<ExtractorDefinition> getDescriptor() {
         return DESCRIPTOR;
     }
 
     @Override
-    public VariableExtractor createExtractor() {
+    public VariableExtractor createExtractor(EnvVars environment) {
         int flags = 0;
         if (ignoreCase) {
             flags |= Pattern.CASE_INSENSITIVE;
@@ -53,22 +52,34 @@ public class FileContentRegExpExtractorDefinition extends ExtractorDefinition {
         if (dotall) {
             flags |= Pattern.DOTALL;
         }
+        String file = environment.expand(this.file);
+        String pattern = environment.expand(this.pattern);
         return new FileContentRegExpExtractor(file, pattern, flags);
     }
 
-    
-    
-    
-    public String getPattern() {
-        if (pattern == null) {
-            return DescriptorImpl.DEFAULT_PATTERN;
-        } else {
-            return pattern;
-        }
+    public String getFile() {
+        return file;
     }
 
+    public String getPattern() {
+        return pattern;
+    }
 
+    public boolean isIgnoreCase() {
+        return ignoreCase;
+    }
 
+    public boolean isComments() {
+        return comments;
+    }
+
+    public boolean isMultiline() {
+        return multiline;
+    }
+
+    public boolean isDotall() {
+        return dotall;
+    }
 
     @Extension
     public static final DescriptorImpl DESCRIPTOR = new DescriptorImpl();
@@ -80,7 +91,7 @@ public class FileContentRegExpExtractorDefinition extends ExtractorDefinition {
         public static final boolean DEFAULT_COMMENTS = true;
         public static final boolean DEFAULT_MULTILINE = false;
         public static final boolean DEFAULT_DOTALL = true;
-        
+
         @Override
         public String getDisplayName() {
             return "File Content Regular Expression Extractor";
