@@ -36,7 +36,7 @@ THE SOFTWARE.
 
     <artifactId>variables-extractor-plugin</artifactId>
     <packaging>hpi</packaging>
-    <version>1.0.0</version>
+    <version>1.0.0-SNAPSHOT</version>
     <name>Hudson Variables Extractor Plug-in</name>
 
     <licenses>
@@ -79,7 +79,7 @@ THE SOFTWARE.
         </dependency>
     </dependencies>
 
-	<build>
+    <build>
         <pluginManagement>
             <plugins>
                 <plugin>
@@ -97,7 +97,7 @@ THE SOFTWARE.
                 </plugin>
             </plugins>
         </pluginManagement>
-	</build>
+    </build>
 
     <scm>
         <connection>scm:git:git://github.com:cittools/variables-extractor-plugin.git</connection>
