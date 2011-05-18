@@ -48,19 +48,21 @@ import net.sf.json.JSONObject;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
 
+import com.thalesgroup.jenkins.plugins.variablesextractor.extractors.Extractor;
+
 public class Plugin extends BuildWrapper {
 
-    private final List<ExtractorDefinition> extractors;
+    private final List<Extractor> extractors;
 
     @Extension
     public static final DescriptorImpl DESCRIPTOR = new DescriptorImpl();
 
     @DataBoundConstructor
-    public Plugin(List<ExtractorDefinition> extractors) {
+    public Plugin(List<Extractor> extractors) {
         this.extractors = extractors;
     }
 
-    public Plugin(ExtractorDefinition... extractors) {
+    public Plugin(Extractor... extractors) {
         this.extractors = Arrays.asList(extractors);
     }
 
@@ -75,22 +77,23 @@ public class Plugin extends BuildWrapper {
         Logger logger = new Logger(listener.getLogger());
         Map<String, String> vars = new HashMap<String, String>();
 
-        for (ExtractorDefinition extractor : this.extractors) {
-            vars.putAll(extractor.createExtractor(build.getEnvironment(listener))
-                    .extractVariables());
+        for (Extractor extractor : this.extractors) {
+            vars.putAll(extractor.extractVariables(build.getWorkspace(),
+                    build.getEnvironment(listener)));
         }
 
         EnvAction action = new EnvAction(vars);
         build.addAction(action);
+        
         logger.log("Extracted variables:");
         for (Entry<String, String> entry : vars.entrySet()) {
             logger.log(entry.getKey() + " = " + entry.getValue());
         }
-        return new Environment() {
-        };
+        
+        return new Environment() {};
     }
 
-    public List<ExtractorDefinition> getExtractors() {
+    public List<Extractor> getExtractors() {
         return extractors;
     }
 
@@ -110,20 +113,20 @@ public class Plugin extends BuildWrapper {
         public BuildWrapper newInstance(StaplerRequest req, JSONObject formData)
                 throws FormException
         {
-            List<ExtractorDefinition> extractors = new ArrayList<ExtractorDefinition>();
+            List<Extractor> extractors = new ArrayList<Extractor>();
             try {
                 JSONObject jsonObj = formData.getJSONObject("extractorDefinitions");
-                ExtractorDefinition def = req.bindJSON(ExtractorDefinition.class, jsonObj);
+                Extractor def = req.bindJSON(Extractor.class, jsonObj);
                 extractors.add(def);
             } catch (JSONException e) {
                 JSONArray array = formData.getJSONArray("extractorDefinitions");
-                extractors.addAll(req.bindJSONToList(ExtractorDefinition.class, array));
+                extractors.addAll(req.bindJSONToList(Extractor.class, array));
             }
             return new Plugin(extractors);
         }
 
-        public List<ExtractorDescriptor> getExtractorDescriptors() {
-            return Hudson.getInstance().getDescriptorList(ExtractorDefinition.class);
+        public List<Extractor.Descriptor> getExtractorDescriptors() {
+            return Hudson.getInstance().getDescriptorList(Extractor.class);
         }
 
         @Override

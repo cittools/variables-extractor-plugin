@@ -1,12 +1,12 @@
 package com.thalesgroup.jenkins.plugins.variablesextractor;
 
-import java.util.Map;
-
-import org.kohsuke.stapler.StaplerProxy;
-
 import hudson.EnvVars;
 import hudson.model.EnvironmentContributingAction;
 import hudson.model.AbstractBuild;
+
+import java.util.Map;
+
+import org.kohsuke.stapler.StaplerProxy;
 
 public class EnvAction implements EnvironmentContributingAction, StaplerProxy {
 
@@ -18,7 +18,7 @@ public class EnvAction implements EnvironmentContributingAction, StaplerProxy {
     }
 
     public String getIconFileName() {
-        return "/plugin/variables-extractor-plugin/icons/extractor.png";
+        return "/plugin/variables-extractor/icons/extractor.png";
     }
 
     public String getDisplayName() {

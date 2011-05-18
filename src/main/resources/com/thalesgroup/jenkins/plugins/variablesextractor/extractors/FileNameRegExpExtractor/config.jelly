@@ -27,16 +27,16 @@ THE SOFTWARE.
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define"
     xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form"
     xmlns:i="jelly:fmt" xmlns:p="/lib/hudson/project">
-	<f:entry title="${%File Path}" field="file" >
+    <f:entry title="${%Base Directory}" field="baseDir" >
+        <f:textbox default="${descriptor.defaultBaseDir}"/>
+    </f:entry>
+	<f:entry title="${%File Name}" field="file" >
 	    <f:textbox />
 	</f:entry>
     <f:entry title="${%Pattern}" field="pattern" >
         <f:textbox default="${descriptor.defaultPattern}"/>
     </f:entry>
     <f:advanced>
-	    <f:entry title="${%Base Directory}" field="baseDir" >
-	        <f:textbox default="${descriptor.defaultBaseDir}"/>
-	    </f:entry>
 	    <f:entry title="${%Ignore Case}" field="ignoreCase" >
 	        <f:checkbox default="${descriptor.defaultIgnoreCase}"/>
 	    </f:entry>

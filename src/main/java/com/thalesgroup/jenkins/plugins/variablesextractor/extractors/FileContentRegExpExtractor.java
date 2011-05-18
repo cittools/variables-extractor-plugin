@@ -1,17 +1,29 @@
-package com.thalesgroup.jenkins.plugins.variablesextractor;
+package com.thalesgroup.jenkins.plugins.variablesextractor.extractors;
 
 import hudson.EnvVars;
 import hudson.Extension;
-import hudson.model.Descriptor;
+import hudson.FilePath;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 import org.kohsuke.stapler.DataBoundConstructor;
 
-import com.thalesgroup.variablesextractor.FileContentRegExpExtractor;
-import com.thalesgroup.variablesextractor.VariableExtractor;
+import com.google.code.regexp.NamedMatcher;
+import com.google.code.regexp.NamedPattern;
+import com.thalesgroup.jenkins.plugins.variablesextractor.util.ExtractionException;
 
-public class FileContentRegExpExtractorDefinition extends ExtractorDefinition {
+public class FileContentRegExpExtractor extends Extractor {
+
+    /**********
+     * FIELDS *
+     **********/
+    @Extension
+    public static final DescriptorImpl DESCRIPTOR = new DescriptorImpl();
 
     private final String file;
     private final String pattern;
@@ -20,8 +32,12 @@ public class FileContentRegExpExtractorDefinition extends ExtractorDefinition {
     private final boolean multiline;
     private final boolean dotall;
 
+    /***************
+     * CONSTRUCTOR *
+     ***************/
+
     @DataBoundConstructor
-    public FileContentRegExpExtractorDefinition(String file, String pattern, boolean ignoreCase,
+    public FileContentRegExpExtractor(String file, String pattern, boolean ignoreCase,
             boolean comments, boolean multiline, boolean dotall)
     {
         super();
@@ -33,12 +49,14 @@ public class FileContentRegExpExtractorDefinition extends ExtractorDefinition {
         this.dotall = dotall;
     }
 
-    public Descriptor<ExtractorDefinition> getDescriptor() {
-        return DESCRIPTOR;
-    }
+    /************
+     * OVERRIDE *
+     ************/
 
     @Override
-    public VariableExtractor createExtractor(EnvVars environment) {
+    public Map<String, String> extractVariables(FilePath workspace, EnvVars environment)
+            throws ExtractionException
+    {
         int flags = 0;
         if (ignoreCase) {
             flags |= Pattern.CASE_INSENSITIVE;
@@ -52,10 +70,41 @@ public class FileContentRegExpExtractorDefinition extends ExtractorDefinition {
         if (dotall) {
             flags |= Pattern.DOTALL;
         }
-        String file = environment.expand(this.file);
+        String resolvedFile = environment.expand(this.file);
         String pattern = environment.expand(this.pattern);
-        return new FileContentRegExpExtractor(file, pattern, flags);
+
+        FilePath filePath;
+
+        if (new File(resolvedFile).isAbsolute()) {
+            filePath = new FilePath(workspace.getChannel(), resolvedFile);
+        } else {
+            filePath = workspace.child(resolvedFile);
+        }
+
+        try {
+            String content = filePath.readToString();
+            NamedPattern compiledPattern = NamedPattern.compile(pattern, flags);
+            NamedMatcher matcher = compiledPattern.matcher(content);
+
+            if (matcher.find()) {
+                return matcher.namedGroups();
+            } else {
+                return new LinkedHashMap<String, String>();
+            }
+        } catch (IOException e) {
+            throw new ExtractionException("Error reading file: " + resolvedFile, e);
+        } catch (PatternSyntaxException e) {
+            throw new ExtractionException("Invalid regexp pattern: " + e.getMessage(), e);
+        }
     }
+
+    public hudson.model.Descriptor<Extractor> getDescriptor() {
+        return DESCRIPTOR;
+    }
+
+    /***********
+     * GETTERS *
+     ***********/
 
     public String getFile() {
         return file;
@@ -81,12 +130,13 @@ public class FileContentRegExpExtractorDefinition extends ExtractorDefinition {
         return dotall;
     }
 
-    @Extension
-    public static final DescriptorImpl DESCRIPTOR = new DescriptorImpl();
+    /**************
+     * DESCRIPTOR *
+     **************/
 
-    public static class DescriptorImpl extends ExtractorDescriptor {
+    public static class DescriptorImpl extends Extractor.Descriptor {
 
-        public static final String DEFAULT_PATTERN = "<version>(?P<VERSION>.+)</version>";
+        public static final String DEFAULT_PATTERN = "<version>(?P<VERSION>.+?)</version>";
         public static final boolean DEFAULT_IGNORE_CASE = false;
         public static final boolean DEFAULT_COMMENTS = true;
         public static final boolean DEFAULT_MULTILINE = false;
