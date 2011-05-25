@@ -78,12 +78,13 @@ public class Plugin extends BuildWrapper {
         Map<String, String> vars = new HashMap<String, String>();
 
         for (Extractor extractor : this.extractors) {
-            vars.putAll(extractor.extractVariables(build.getWorkspace(),
-                    build.getEnvironment(listener)));
+            vars.putAll(extractor.extractVariables(build, listener));
         }
 
-        EnvAction action = new EnvAction(vars);
-        build.addAction(action);
+        if (vars.size() > 0) {
+            EnvAction action = new EnvAction(vars);
+            build.addAction(action);
+        }
         
         logger.log("Extracted variables:");
         for (Entry<String, String> entry : vars.entrySet()) {
@@ -114,13 +115,15 @@ public class Plugin extends BuildWrapper {
                 throws FormException
         {
             List<Extractor> extractors = new ArrayList<Extractor>();
-            try {
-                JSONObject jsonObj = formData.getJSONObject("extractorDefinitions");
-                Extractor def = req.bindJSON(Extractor.class, jsonObj);
-                extractors.add(def);
-            } catch (JSONException e) {
-                JSONArray array = formData.getJSONArray("extractorDefinitions");
-                extractors.addAll(req.bindJSONToList(Extractor.class, array));
+            if (formData.containsKey("extractorDefinitions")) {
+                try {
+                    JSONObject jsonObj = formData.getJSONObject("extractorDefinitions");
+                    Extractor def = req.bindJSON(Extractor.class, jsonObj);
+                    extractors.add(def);
+                } catch (JSONException e) {
+                    JSONArray array = formData.getJSONArray("extractorDefinitions");
+                    extractors.addAll(req.bindJSONToList(Extractor.class, array));
+                }
             }
             return new Plugin(extractors);
         }

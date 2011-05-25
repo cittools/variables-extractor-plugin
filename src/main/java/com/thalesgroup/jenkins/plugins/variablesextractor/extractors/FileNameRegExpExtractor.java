@@ -4,6 +4,8 @@ import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Util;
+import hudson.model.TaskListener;
+import hudson.model.AbstractBuild;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -17,6 +19,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 
 import com.google.code.regexp.NamedMatcher;
 import com.google.code.regexp.NamedPattern;
+import com.thalesgroup.jenkins.plugins.variablesextractor.Logger;
 import com.thalesgroup.jenkins.plugins.variablesextractor.util.ExtractionException;
 import com.thalesgroup.jenkins.plugins.variablesextractor.util.MultipleFilesMatchedException;
 
@@ -52,9 +55,17 @@ public class FileNameRegExpExtractor extends Extractor {
      ************/
 
     @Override
-    public Map<String, String> extractVariables(FilePath workspace, EnvVars environment)
+    public Map<String, String> extractVariables(AbstractBuild<?, ?> build, TaskListener listener)
             throws ExtractionException
     {
+        FilePath workspace = build.getWorkspace();
+        EnvVars environment;
+        try {
+            environment = build.getEnvironment(listener);
+        } catch (Exception e1) {
+            throw new ExtractionException(e1);
+        }
+
         String resolvedFile = environment.expand(this.file);
         String resolvedPattern = environment.expand(this.pattern);
         String resolvedBaseDir = environment.expand(this.baseDir);
@@ -75,7 +86,8 @@ public class FileNameRegExpExtractor extends Extractor {
         }
 
         try {
-
+            Logger logger = new Logger(listener.getLogger());
+            logger.log("Extracting variables from file name: " + resolvedFile);
             String filename = getExpandedFileName(path, resolvedFile);
             NamedPattern compiledPattern = NamedPattern.compile(resolvedPattern, flags);
             NamedMatcher matcher = compiledPattern.matcher(filename);

@@ -27,15 +27,19 @@ package com.thalesgroup.jenkins.plugins.variablesextractor.extractors;
 import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
+import hudson.Launcher;
+import hudson.Launcher.ProcStarter;
+import hudson.Util;
 import hudson.model.TaskListener;
 import hudson.model.AbstractBuild;
+import hudson.model.Executor;
+import hudson.util.ArgumentListBuilder;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
 
 import org.kohsuke.stapler.DataBoundConstructor;
 
@@ -44,7 +48,7 @@ import com.google.code.regexp.NamedPattern;
 import com.thalesgroup.jenkins.plugins.variablesextractor.Logger;
 import com.thalesgroup.jenkins.plugins.variablesextractor.util.ExtractionException;
 
-public class FileContentRegExpExtractor extends Extractor {
+public class CommandLineRegExpExtractor extends Extractor {
 
     /**********
      * FIELDS *
@@ -52,8 +56,9 @@ public class FileContentRegExpExtractor extends Extractor {
     @Extension
     public static final DescriptorImpl DESCRIPTOR = new DescriptorImpl();
 
-    private final String file;
+    private final String command;
     private final String pattern;
+    private final String workdir;
     private final boolean ignoreCase;
     private final boolean comments;
     private final boolean multiline;
@@ -64,12 +69,13 @@ public class FileContentRegExpExtractor extends Extractor {
      ***************/
 
     @DataBoundConstructor
-    public FileContentRegExpExtractor(String file, String pattern, boolean ignoreCase,
-            boolean comments, boolean multiline, boolean dotall)
+    public CommandLineRegExpExtractor(String command, String pattern, String workdir,
+            boolean ignoreCase, boolean comments, boolean multiline, boolean dotall)
     {
         super();
-        this.file = file;
+        this.command = command;
         this.pattern = pattern;
+        this.workdir = Util.fixEmptyAndTrim(workdir);
         this.ignoreCase = ignoreCase;
         this.comments = comments;
         this.multiline = multiline;
@@ -93,45 +99,59 @@ public class FileContentRegExpExtractor extends Extractor {
         }
 
         int flags = 0;
-        if (ignoreCase) {
-            flags |= Pattern.CASE_INSENSITIVE;
-        }
-        if (comments) {
-            flags |= Pattern.COMMENTS;
-        }
-        if (multiline) {
-            flags |= Pattern.MULTILINE;
-        }
-        if (dotall) {
-            flags |= Pattern.DOTALL;
-        }
-        String resolvedFile = environment.expand(this.file);
-        String pattern = environment.expand(this.pattern);
+        if (ignoreCase) flags |= Pattern.CASE_INSENSITIVE;
+        if (comments) flags |= Pattern.COMMENTS;
+        if (multiline) flags |= Pattern.MULTILINE;
+        if (dotall) flags |= Pattern.DOTALL;
+        
+        String resolvedCommand = environment.expand(this.command);
+        String resolvedPattern = environment.expand(this.pattern);
+        String resolvedWorkdir = environment.expand(this.workdir);
 
         FilePath filePath;
-
-        if (new File(resolvedFile).isAbsolute()) {
-            filePath = new FilePath(workspace.getChannel(), resolvedFile);
+        if (resolvedWorkdir == null) {
+            filePath = workspace;
+        } else if (new File(resolvedWorkdir).isAbsolute()) {
+            filePath = new FilePath(workspace.getChannel(), resolvedWorkdir);
         } else {
-            filePath = workspace.child(resolvedFile);
+            filePath = workspace.child(resolvedWorkdir);
         }
+        
+        Launcher launcher = Executor.currentExecutor().getOwner().getNode()
+                .createLauncher(TaskListener.NULL);
+
+        ArgumentListBuilder args = new ArgumentListBuilder();
+        args.addTokenized(resolvedCommand);
+
+        ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+        ProcStarter starter = launcher.launch();
+        starter.cmds(args);
+        starter.envs(environment);
+        starter.stdout(outStream);
+        starter.pwd(filePath);
 
         try {
             Logger logger = new Logger(listener.getLogger());
-            logger.log("Extracting variables from file content: " + resolvedFile);
-            String content = filePath.readToString();
-            NamedPattern compiledPattern = NamedPattern.compile(pattern, flags);
-            NamedMatcher matcher = compiledPattern.matcher(content);
+            int code = launcher.launch(starter).join();
+            String commandOutput = outStream.toString();
+            logger.log("Extracting variables from command output: " + resolvedCommand);
+            if (resolvedWorkdir != null) {
+                logger.log("Executed from working directory: " + resolvedWorkdir);
+            }
+            listener.getLogger().println(commandOutput);
+            if (code != 0) {
+                throw new RuntimeException("Error during command execution");
+            }
+            NamedPattern compiledPattern = NamedPattern.compile(resolvedPattern, flags);
+            NamedMatcher matcher = compiledPattern.matcher(commandOutput);
 
             if (matcher.find()) {
                 return matcher.namedGroups();
             } else {
                 return new LinkedHashMap<String, String>();
             }
-        } catch (IOException e) {
-            throw new ExtractionException("Error reading file: " + resolvedFile, e);
-        } catch (PatternSyntaxException e) {
-            throw new ExtractionException("Invalid regexp pattern: " + e.getMessage(), e);
+        } catch (Exception e) {
+            throw new ExtractionException(e);
         }
     }
 
@@ -143,8 +163,8 @@ public class FileContentRegExpExtractor extends Extractor {
      * GETTERS *
      ***********/
 
-    public String getFile() {
-        return file;
+    public String getCommand() {
+        return command;
     }
 
     public String getPattern() {
@@ -173,7 +193,6 @@ public class FileContentRegExpExtractor extends Extractor {
 
     public static class DescriptorImpl extends Extractor.Descriptor {
 
-        public static final String DEFAULT_PATTERN = "<version>(?P<VERSION>.+?)</version>";
         public static final boolean DEFAULT_IGNORE_CASE = false;
         public static final boolean DEFAULT_COMMENTS = true;
         public static final boolean DEFAULT_MULTILINE = false;
@@ -181,11 +200,7 @@ public class FileContentRegExpExtractor extends Extractor {
 
         @Override
         public String getDisplayName() {
-            return "File Content Regular Expression Extractor";
-        }
-
-        public String getDefaultPattern() {
-            return DEFAULT_PATTERN;
+            return "Command Line Regular Expression Extractor";
         }
 
         public boolean isDefaultIgnoreCase() {
@@ -203,7 +218,6 @@ public class FileContentRegExpExtractor extends Extractor {
         public boolean isDefaultDotall() {
             return DEFAULT_DOTALL;
         }
-
     }
 
 }
