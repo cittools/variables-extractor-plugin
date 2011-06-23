@@ -148,6 +148,7 @@ public class CommandLineRegExpExtractor extends Extractor {
             if (matcher.find()) {
                 return matcher.namedGroups();
             } else {
+                logger.log("<WARNING> No match in command output for pattern: " + resolvedPattern);
                 return new LinkedHashMap<String, String>();
             }
         } catch (Exception e) {

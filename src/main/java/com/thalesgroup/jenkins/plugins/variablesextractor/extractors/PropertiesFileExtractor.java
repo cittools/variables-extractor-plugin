@@ -3,12 +3,14 @@ package com.thalesgroup.jenkins.plugins.variablesextractor.extractors;
 import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
+import hudson.FilePath.FileCallable;
 import hudson.model.TaskListener;
 import hudson.model.AbstractBuild;
+import hudson.remoting.VirtualChannel;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -46,6 +48,7 @@ public class PropertiesFileExtractor extends Extractor {
      * OVERRIDE *
      ************/
 
+    @SuppressWarnings("serial")
     @Override
     public Map<String, String> extractVariables(AbstractBuild<?, ?> build, TaskListener listener)
             throws ExtractionException
@@ -71,10 +74,19 @@ public class PropertiesFileExtractor extends Extractor {
         try {
             Logger logger = new Logger(listener.getLogger());
             logger.log("Extracting variables from properties file: " + resolvedPropertiesFile);
-            Properties properties = new Properties();
-            InputStream is = filePath.read();
-            properties.load(is);
-            is.close();
+            final Properties properties = new Properties();
+            
+            filePath.act(new FileCallable<Boolean>() {
+
+                public Boolean invoke(File f, VirtualChannel channel) throws IOException,
+                        InterruptedException
+                {
+                    FileInputStream is = new FileInputStream(f);
+                    properties.load(is);
+                    is.close();
+                    return true;
+                }
+            });
 
             Map<String, String> vars = new LinkedHashMap<String, String>();
 
@@ -91,6 +103,8 @@ public class PropertiesFileExtractor extends Extractor {
             return vars;
 
         } catch (IOException e) {
+            throw new ExtractionException("Error reading file: " + resolvedPropertiesFile, e);
+        } catch (InterruptedException e) {
             throw new ExtractionException("Error reading file: " + resolvedPropertiesFile, e);
         }
     }

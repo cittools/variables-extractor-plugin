@@ -95,6 +95,7 @@ public class FileNameRegExpExtractor extends Extractor {
             if (matcher.find()) {
                 return matcher.namedGroups();
             } else {
+                logger.log("<WARNING> No match in file name for pattern: " + resolvedPattern);
                 return new LinkedHashMap<String, String>();
             }
         } catch (FileNotFoundException e) {

@@ -27,11 +27,15 @@ package com.thalesgroup.jenkins.plugins.variablesextractor.extractors;
 import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
+import hudson.FilePath.FileCallable;
 import hudson.model.TaskListener;
 import hudson.model.AbstractBuild;
+import hudson.remoting.VirtualChannel;
 
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
+import java.io.Reader;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -106,7 +110,7 @@ public class FileContentRegExpExtractor extends Extractor {
             flags |= Pattern.DOTALL;
         }
         String resolvedFile = environment.expand(this.file);
-        String pattern = environment.expand(this.pattern);
+        String resolvedPattern = environment.expand(this.pattern);
 
         FilePath filePath;
 
@@ -119,20 +123,43 @@ public class FileContentRegExpExtractor extends Extractor {
         try {
             Logger logger = new Logger(listener.getLogger());
             logger.log("Extracting variables from file content: " + resolvedFile);
-            String content = filePath.readToString();
-            NamedPattern compiledPattern = NamedPattern.compile(pattern, flags);
+            
+            @SuppressWarnings("serial")
+            String content = filePath.act(new FileCallable<String>() {
+                public String invoke(File f, VirtualChannel channel) throws IOException,
+                        InterruptedException
+                {
+                    final char[] buffer = new char[4096];
+                    int bufferLength = 0;
+                    StringBuffer textBuffer = new StringBuffer();
+                    Reader reader = new FileReader(f);
+                    while (bufferLength != -1) {
+                        bufferLength = reader.read(buffer);
+                        if (bufferLength > 0) {
+                            textBuffer.append(new String(buffer, 0, bufferLength));
+                        }
+                    }
+                    reader.close();
+                    return textBuffer.toString();
+                }
+            });
+            
+            NamedPattern compiledPattern = NamedPattern.compile(resolvedPattern, flags);
             NamedMatcher matcher = compiledPattern.matcher(content);
 
             if (matcher.find()) {
                 return matcher.namedGroups();
             } else {
+                logger.log("<WARNING> No match in file content for pattern: " + resolvedPattern);
                 return new LinkedHashMap<String, String>();
             }
+        } catch (InterruptedException e) {
+            throw new ExtractionException("Error reading file: " + resolvedFile, e);
         } catch (IOException e) {
             throw new ExtractionException("Error reading file: " + resolvedFile, e);
         } catch (PatternSyntaxException e) {
             throw new ExtractionException("Invalid regexp pattern: " + e.getMessage(), e);
-        }
+        } 
     }
 
     public hudson.model.Descriptor<Extractor> getDescriptor() {
