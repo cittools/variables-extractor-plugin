@@ -50,6 +50,8 @@ import com.thalesgroup.jenkins.plugins.variablesextractor.util.ExtractionExcepti
 
 public class CommandLineRegExpExtractor extends Extractor {
 
+    private static final long serialVersionUID = -3590627915663936671L;
+
     /**********
      * FIELDS *
      **********/
@@ -194,6 +196,7 @@ public class CommandLineRegExpExtractor extends Extractor {
 
     public static class DescriptorImpl extends Extractor.Descriptor {
 
+        private static final long serialVersionUID = 7281953615989321037L;
         public static final boolean DEFAULT_IGNORE_CASE = false;
         public static final boolean DEFAULT_COMMENTS = true;
         public static final boolean DEFAULT_MULTILINE = false;

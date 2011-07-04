@@ -24,6 +24,8 @@ import com.thalesgroup.jenkins.plugins.variablesextractor.util.ExtractionExcepti
 
 public class PropertiesFileExtractor extends Extractor {
 
+    private static final long serialVersionUID = 426727170587542760L;
+
     /**********
      * FIELDS *
      **********/
@@ -130,6 +132,8 @@ public class PropertiesFileExtractor extends Extractor {
      **************/
 
     public static class DescriptorImpl extends Extractor.Descriptor {
+
+        private static final long serialVersionUID = -2514421151652686635L;
 
         @Override
         public String getDisplayName() {

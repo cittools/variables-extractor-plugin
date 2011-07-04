@@ -25,6 +25,8 @@ import com.thalesgroup.jenkins.plugins.variablesextractor.util.MultipleFilesMatc
 
 public class FileNameRegExpExtractor extends Extractor {
 
+    private static final long serialVersionUID = 7996203948135536519L;
+
     /**********
      * FIELDS *
      **********/
@@ -157,6 +159,7 @@ public class FileNameRegExpExtractor extends Extractor {
 
     public static class DescriptorImpl extends Extractor.Descriptor {
 
+        private static final long serialVersionUID = -1534970341736440118L;
         public static final String DEFAULT_PATTERN = "(?P<NAME>\\w+)-(?P<VERSION>.+)"
                 + "\\.(?P<TIMESTAMP>.+)\\.(?P<FILEEXT>\\w+)";
         public static final String DEFAULT_BASEDIR = "";

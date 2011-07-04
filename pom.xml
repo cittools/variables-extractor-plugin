@@ -36,7 +36,7 @@ THE SOFTWARE.
 
     <artifactId>variables-extractor</artifactId>
     <packaging>hpi</packaging>
-    <version>1.2.1</version>
+    <version>1.2.2</version>
     <name>Hudson Variables Extractor Plug-in</name>
 
     <licenses>

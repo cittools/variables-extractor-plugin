@@ -50,6 +50,8 @@ import com.thalesgroup.jenkins.plugins.variablesextractor.util.ExtractionExcepti
 
 public class FileContentRegExpExtractor extends Extractor {
 
+    private static final long serialVersionUID = 6923905637559850482L;
+
     /**********
      * FIELDS *
      **********/
@@ -124,8 +126,9 @@ public class FileContentRegExpExtractor extends Extractor {
             Logger logger = new Logger(listener.getLogger());
             logger.log("Extracting variables from file content: " + resolvedFile);
             
-            @SuppressWarnings("serial")
             String content = filePath.act(new FileCallable<String>() {
+                private static final long serialVersionUID = 2354823830107440576L;
+
                 public String invoke(File f, VirtualChannel channel) throws IOException,
                         InterruptedException
                 {
@@ -200,6 +203,7 @@ public class FileContentRegExpExtractor extends Extractor {
 
     public static class DescriptorImpl extends Extractor.Descriptor {
 
+        private static final long serialVersionUID = -8256041431702583829L;
         public static final String DEFAULT_PATTERN = "<version>(?P<VERSION>.+?)</version>";
         public static final boolean DEFAULT_IGNORE_CASE = false;
         public static final boolean DEFAULT_COMMENTS = true;
