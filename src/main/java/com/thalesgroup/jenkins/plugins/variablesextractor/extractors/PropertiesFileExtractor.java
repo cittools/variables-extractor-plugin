@@ -11,7 +11,7 @@ import hudson.remoting.VirtualChannel;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -62,8 +62,13 @@ public class PropertiesFileExtractor extends Extractor {
         } catch (Exception e1) {
             throw new ExtractionException(e1);
         }
-
-        List<String> names = Arrays.asList(restrictedNames.split("\\s*,\\s*"));
+        
+        List<String> names = new ArrayList<String>();
+        for (String name : restrictedNames.split("\\s*,\\s*")) {
+            if (name != null && !"".equals(name.trim())) {
+                names.add(name);
+            }
+        }
         String resolvedPropertiesFile = environment.expand(this.propertiesFile);
 
         FilePath filePath;
@@ -76,17 +81,17 @@ public class PropertiesFileExtractor extends Extractor {
         try {
             Logger logger = new Logger(listener.getLogger());
             logger.log("Extracting variables from properties file: " + resolvedPropertiesFile);
-            final Properties properties = new Properties();
             
-            filePath.act(new FileCallable<Boolean>() {
+            Properties properties = filePath.act(new FileCallable<Properties>() {
 
-                public Boolean invoke(File f, VirtualChannel channel) throws IOException,
+                public Properties invoke(File f, VirtualChannel channel) throws IOException,
                         InterruptedException
                 {
                     FileInputStream is = new FileInputStream(f);
-                    properties.load(is);
+                    Properties props = new Properties();
+                    props.load(is);
                     is.close();
-                    return true;
+                    return props;
                 }
             });
 
