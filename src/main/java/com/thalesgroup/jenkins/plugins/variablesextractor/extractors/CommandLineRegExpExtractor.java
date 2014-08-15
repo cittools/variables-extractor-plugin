@@ -174,7 +174,11 @@ public class CommandLineRegExpExtractor extends Extractor {
         return pattern;
     }
 
-    public boolean isIgnoreCase() {
+    public String getWorkdir() {
+		return workdir;
+	}
+
+	public boolean isIgnoreCase() {
         return ignoreCase;
     }
 

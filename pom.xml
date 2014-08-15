@@ -36,7 +36,7 @@ THE SOFTWARE.
 
     <artifactId>variables-extractor</artifactId>
     <packaging>hpi</packaging>
-    <version>1.2.3</version>
+    <version>1.2.4</version>
     <name>Hudson Variables Extractor Plug-in</name>
 
     <licenses>
@@ -55,6 +55,14 @@ THE SOFTWARE.
             <roles>
                 <role>Project Owner</role>
                 <role>Project Lead Developer</role>
+            </roles>
+        </developer>
+        <developer>
+            <id>Aravindan</id>
+            <name>Aravindan Mahendran</name>
+            <timezone>+1</timezone>
+            <roles>
+                <role>Project Developer</role>
             </roles>
         </developer>
     </developers>
